@@ -4,8 +4,12 @@ set -e
 DB_PASSWORD=$(cat /run/secrets/db_password)
 DB_ROOT_PASSWORD=$(cat /run/secrets/db_root_password)
 
-if [ ! -d "/var/lib/mysql/mysql" ]; then
+INIT_MARKER="/var/lib/mysql/.inception_initialized"
+
+if [ ! -f "$INIT_MARKER" ] || [ ! -d "/var/lib/mysql/mysql" ]; then
     echo "[init_db] First run: initializing data directory"
+
+    rm -rf /var/lib/mysql/*
 
     mariadb-install-db \
         --user=mysql \
@@ -31,6 +35,7 @@ EOSQL
 
     mariadb-admin --socket=/run/mysqld/mysqld.sock -u root -p"${DB_ROOT_PASSWORD}" shutdown
     wait "$pid"
+    touch "$INIT_MARKER"
     echo "[init_db] Initialization complete"
 fi
 
